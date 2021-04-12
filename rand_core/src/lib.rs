@@ -38,24 +38,29 @@
 #![allow(clippy::unreadable_literal)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
-
 use core::convert::AsMut;
 use core::default::Default;
 use core::ptr::copy_nonoverlapping;
 
-#[cfg(all(feature = "alloc", not(feature = "std")))] extern crate alloc;
-#[cfg(all(feature = "alloc", not(feature = "std")))] use alloc::boxed::Box;
+#[cfg(all(feature = "alloc", not(feature = "std")))]
+extern crate alloc;
+#[cfg(all(feature = "alloc", not(feature = "std")))]
+use alloc::boxed::Box;
 
 pub use error::Error;
-#[cfg(feature = "getrandom")] pub use os::OsRng;
-
+#[cfg(all(feature = "nitro", not(feature = "getrandom")))]
+pub use nitro::OsRng;
+#[cfg(all(feature = "getrandom", not(feature = "nitro")))]
+pub use os::OsRng;
 
 pub mod block;
 mod error;
 pub mod impls;
 pub mod le;
-#[cfg(feature = "getrandom")] mod os;
-
+#[cfg(all(feature = "nitro", not(feature = "getrandom")))]
+mod nitro;
+#[cfg(all(feature = "getrandom", not(feature = "nitro")))]
+mod os;
 
 /// The core of a random number generator.
 ///
@@ -368,10 +373,20 @@ pub trait SeedableRng: Sized {
     /// If [`getrandom`] is unable to provide secure entropy this method will panic.
     ///
     /// [`getrandom`]: https://docs.rs/getrandom
-    #[cfg(feature = "getrandom")]
+    #[cfg(all(feature = "getrandom", not(feature = "nitro")))]
     fn from_entropy() -> Self {
         let mut seed = Self::Seed::default();
         if let Err(err) = getrandom::getrandom(seed.as_mut()) {
+            panic!("from_entropy failed: {}", err);
+        }
+        Self::from_seed(seed)
+    }
+
+    /// Creates a new instance of the RNG seeded via NSM (NitroSecureModule).
+    #[cfg(all(feature = "nitro", not(feature = "getrandom")))]
+    fn from_entropy() -> Self {
+        let mut seed = Self::Seed::default();
+        if let Err(err) = nitro::fill_bytes(seed.as_mut()) {
             panic!("from_entropy failed: {}", err);
         }
         Self::from_seed(seed)

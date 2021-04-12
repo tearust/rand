@@ -78,9 +78,19 @@ impl<R: Read> RngCore for ReadRng<R> {
             return Ok(());
         }
         // Use `std::io::read_exact`, which retries on `ErrorKind::Interrupted`.
-        self.reader
-            .read_exact(dest)
-            .map_err(|e| Error::new(ReadError(e)))
+        #[cfg(not(feature = "nitro"))]
+        {
+            self.reader
+                .read_exact(dest)
+                .map_err(|e| Error::new(ReadError(e)))
+        }
+        #[cfg(feature = "nitro")]
+        {
+            if let Err(e) = self.reader.read_exact(dest) {
+                error!("fill bytes failed: {}", e);
+            }
+            Ok(())
+        }
     }
 }
 

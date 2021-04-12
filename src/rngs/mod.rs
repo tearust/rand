@@ -113,4 +113,5 @@ pub use self::entropy::EntropyRng;
 pub use self::std::StdRng;
 #[cfg(feature = "std")] pub use self::thread::ThreadRng;
 
-#[cfg(feature = "getrandom")] pub use rand_core::OsRng;
+#[cfg(all(feature = "getrandom", not(feature = "nitro")))] pub use rand_core::OsRng;
+#[cfg(all(feature = "nitro", not(feature = "getrandom")))] pub use rand_core::OsRng;

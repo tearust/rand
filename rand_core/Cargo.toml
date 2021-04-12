@@ -19,13 +19,17 @@ travis-ci = { repository = "rust-random/rand" }
 appveyor = { repository = "rust-random/rand" }
 
 [features]
+default = []
 std = ["alloc", "getrandom", "getrandom/std"]    # use std library; should be default but for above bug
 alloc = []  # enables Vec and Box support without std
 serde1 = ["serde"] # enables serde for BlockRng wrapper
+nitro = ["alloc", "nsm-lib", "nsm-io"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"], optional = true }
 getrandom = { version = "0.1", optional = true }
+nsm-lib = { git = "https://github.com/aws/aws-nitro-enclaves-nsm-api", rev = "34bad95", optional = true }
+nsm-io = { git = "https://github.com/aws/aws-nitro-enclaves-nsm-api", rev = "34bad95", optional = true }
 
 [package.metadata.docs.rs]
 all-features = true

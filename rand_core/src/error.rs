@@ -9,8 +9,8 @@
 //! Error types
 
 use core::fmt;
+#[cfg(not(feature = "nitro"))]
 use core::num::NonZeroU32;
-
 
 /// Error type of random number generators
 ///
@@ -20,7 +20,9 @@ use core::num::NonZeroU32;
 pub struct Error {
     #[cfg(feature = "std")]
     inner: Box<dyn std::error::Error + Send + Sync + 'static>,
-    #[cfg(not(feature = "std"))]
+    #[cfg(all(not(feature = "std"), feature = "nitro"))]
+    error_code: nsm_io::ErrorCode,
+    #[cfg(all(not(feature = "std"), not(feature = "nitro")))]
     code: NonZeroU32,
 }
 
@@ -41,7 +43,9 @@ impl Error {
     #[cfg(feature = "std")]
     #[inline]
     pub fn new<E>(err: E) -> Self
-    where E: Into<Box<dyn std::error::Error + Send + Sync + 'static>> {
+    where
+        E: Into<Box<dyn std::error::Error + Send + Sync + 'static>>,
+    {
         Error { inner: err.into() }
     }
 
@@ -71,6 +75,7 @@ impl Error {
     /// that it works in `no_std` contexts. If this method returns `None`, the
     /// error value can still be formatted via the `Diplay` implementation.
     #[inline]
+    #[cfg(not(feature = "nitro"))]
     pub fn raw_os_error(&self) -> Option<i32> {
         #[cfg(feature = "std")]
         {
@@ -90,6 +95,7 @@ impl Error {
     /// will return this `NonZeroU32` code (for `no_std` this is always the
     /// case). Otherwise, this method will return `None`.
     #[inline]
+    #[cfg(not(feature = "nitro"))]
     pub fn code(&self) -> Option<NonZeroU32> {
         #[cfg(feature = "std")]
         {
@@ -112,7 +118,11 @@ impl fmt::Debug for Error {
         {
             getrandom::Error::from(self.code).fmt(f)
         }
-        #[cfg(not(feature = "getrandom"))]
+        #[cfg(all(not(feature = "getrandom"), feature = "nitro"))]
+        {
+            write!(f, "Error {{ error_code: {:?} }}", self.error_code)
+        }
+        #[cfg(all(not(feature = "getrandom"), not(feature = "nitro")))]
         {
             write!(f, "Error {{ code: {} }}", self.code)
         }
@@ -129,13 +139,18 @@ impl fmt::Display for Error {
         {
             getrandom::Error::from(self.code).fmt(f)
         }
-        #[cfg(not(feature = "getrandom"))]
+        #[cfg(all(not(feature = "getrandom"), feature = "nitro"))]
+        {
+            write!(f, "error code {:?}", self.error_code)
+        }
+        #[cfg(all(not(feature = "getrandom"), not(feature = "nitro")))]
         {
             write!(f, "error code {}", self.code)
         }
     }
 }
 
+#[cfg(all(not(feature = "getrandom"), not(feature = "nitro")))]
 impl From<NonZeroU32> for Error {
     #[inline]
     fn from(code: NonZeroU32) -> Self {
@@ -166,6 +181,14 @@ impl From<getrandom::Error> for Error {
         {
             Error { code: error.code() }
         }
+    }
+}
+
+#[cfg(all(feature = "nitro", not(feature = "getrandom")))]
+impl From<nsm_io::ErrorCode> for Error {
+    #[inline]
+    fn from(error_code: nsm_io::ErrorCode) -> Self {
+        Error { error_code }
     }
 }
 
