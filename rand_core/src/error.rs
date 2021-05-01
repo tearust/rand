@@ -9,7 +9,7 @@
 //! Error types
 
 use core::fmt;
-#[cfg(not(feature = "nitro"))]
+#[cfg(feature = "std")]
 use core::num::NonZeroU32;
 
 /// Error type of random number generators
@@ -75,7 +75,7 @@ impl Error {
     /// that it works in `no_std` contexts. If this method returns `None`, the
     /// error value can still be formatted via the `Diplay` implementation.
     #[inline]
-    #[cfg(not(feature = "nitro"))]
+    #[cfg(feature = "std")]
     pub fn raw_os_error(&self) -> Option<i32> {
         #[cfg(feature = "std")]
         {
@@ -95,7 +95,7 @@ impl Error {
     /// will return this `NonZeroU32` code (for `no_std` this is always the
     /// case). Otherwise, this method will return `None`.
     #[inline]
-    #[cfg(not(feature = "nitro"))]
+    #[cfg(feature = "std")]
     pub fn code(&self) -> Option<NonZeroU32> {
         #[cfg(feature = "std")]
         {
